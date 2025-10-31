@@ -1,0 +1,102 @@
+{
+  "unknownPlayers": [],
+  "missedCourses": [
+    ""
+  ],
+  "missedHoles": [
+    "course:undefined-hole:1",
+    "course:undefined-hole:10",
+    "course:undefined-hole:11",
+    "course:undefined-hole:12",
+    "course:undefined-hole:13",
+    "course:undefined-hole:14",
+    "course:undefined-hole:15",
+    "course:undefined-hole:16",
+    "course:undefined-hole:17",
+    "course:undefined-hole:18",
+    "course:undefined-hole:2",
+    "course:undefined-hole:3",
+    "course:undefined-hole:4",
+    "course:undefined-hole:5",
+    "course:undefined-hole:6",
+    "course:undefined-hole:7",
+    "course:undefined-hole:8",
+    "course:undefined-hole:9"
+  ],
+  "matches": [
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    },
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    },
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    },
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    },
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    },
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    },
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    },
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    },
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    },
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    },
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    },
+    {
+      "legacy": "",
+      "matchId": "1",
+      "red": [],
+      "blue": []
+    }
+  ],
+  "errors": [],
+  "when": "2025-10-31T16:45:30+01:00"
+}

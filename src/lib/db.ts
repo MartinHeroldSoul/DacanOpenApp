@@ -1,14 +1,18 @@
 // src/lib/db.ts
 import { Client, type QueryResultRow } from 'pg';
 
+// ✅ Pojistka pro Vercel, aby Node ignoroval self-signed certs
+if (process.env.NODE_ENV === 'production') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 export async function query<T extends QueryResultRow = any>(
   sql: string,
   params: any[] = []
 ) {
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
-    // V produkci (Vercel) povol SSL, ale nevyžaduj validní CA řetězec
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+    ssl: { rejectUnauthorized: false }, // vždy zapnuto, ne jen podmíněně
   });
 
   await client.connect();

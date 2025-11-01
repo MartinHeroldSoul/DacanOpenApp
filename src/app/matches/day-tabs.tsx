@@ -1,6 +1,4 @@
 // src/app/matches/day-tabs.tsx
-import Link from "next/link";
-
 export default function DayTabs({
   seasonId,
   day,
@@ -8,24 +6,19 @@ export default function DayTabs({
   seasonId: number;
   day: 1 | 2;
 }) {
-  const base = "/matches";
-
   const Btn = (d: 1 | 2) => (
-    <Link
+    <a
       key={d}
-      href={{ pathname: base, query: { season: seasonId, day: d } }}
-      prefetch={false}
+      href={`/matches?season=${seasonId}&day=${d}`} // tvrdý reload
       className={[
         "px-4 py-2 text-sm",
-        d === day
-          ? "bg-green-600 text-white"
-          : "bg-white hover:bg-gray-50 text-gray-700",
+        d === day ? "bg-green-600 text-white" : "bg-white hover:bg-gray-50 text-gray-700",
         d === 1 ? "border-r" : "",
       ].join(" ")}
       aria-current={d === day ? "page" : undefined}
     >
       Day {d}
-    </Link>
+    </a>
   );
 
   return (

@@ -12,31 +12,27 @@ export const fetchCache = "force-no-store";
 export default async function MatchesPage() {
   noStore();
 
-  // 1) Přečti hlavičky – u tebe je headers() Promise, proto await
+  // 1️⃣ Přečti hlavičky – u tebe je headers() Promise, proto await
   const h = await headers();
 
-  // 2) Zkus poskládat URL co nejspolehlivěji
-  //    a) primárně z Referer (funguje při navigaci v appce)
-  //    b) fallback z X-Forwarded-* + Host + případných custom headerů
+  // 2️⃣ Zkus poskládat URL co nejspolehlivěji
   let fullUrl =
     h.get("referer") ||
     (() => {
       const proto = h.get("x-forwarded-proto") ?? "https";
       const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-      // některé prostředí posílají path/query v těchto headerech; když nejsou, necháme prázdné
       const path = h.get("x-invoke-path") ?? "/matches";
       const queryStr = h.get("x-forwarded-query"); // bez '?'
       return `${proto}://${host}${path}${queryStr ? `?${queryStr}` : ""}`;
     })();
 
-  // jako úplně poslední záchrana
   if (!fullUrl) fullUrl = "https://example.com/matches";
 
   const url = new URL(fullUrl);
   const seasonParam = url.searchParams.get("season");
   const dayParam = url.searchParams.get("day");
 
-  // 3) Načti seznam sezon
+  // 3️⃣ Načti seznam sezon
   const seasons = await query<{ id: number; year: number; name: string }>(
     `select id, year, name from seasons order by year desc`
   );
@@ -44,14 +40,17 @@ export default async function MatchesPage() {
     return <div className="p-6">No seasons found.</div>;
   }
 
-  const defaultSeasonId = seasons[0].id;
-  const seasonId = Number.isFinite(Number(seasonParam))
-    ? Number(seasonParam)
-    : defaultSeasonId;
+  // 4️⃣ Bezpečné určení seasonId
+  const defaultSeasonId = Number.parseInt(String(seasons[0].id), 10);
+  let seasonId = Number.parseInt(seasonParam ?? "NaN", 10);
+  if (!Number.isInteger(seasonId) || seasonId <= 0) {
+    seasonId = defaultSeasonId;
+  }
 
+  // 5️⃣ Den (1 nebo 2)
   const day: 1 | 2 = dayParam === "2" ? 2 : 1;
 
-  // 4) Zápasy pro daný den
+  // 6️⃣ Zápasy
   const matches = await query<{
     id: number;
     legacy_id: string | null;

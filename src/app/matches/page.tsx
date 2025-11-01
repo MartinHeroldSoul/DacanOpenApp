@@ -1,56 +1,31 @@
-// src/app/matches/page.tsx
-import SeasonSelect from "./season-select";
-import DayTabs from "./day-tabs";
-import { query } from "@/lib/db";
-import { headers } from "next/headers";
-import { unstable_noStore as noStore } from "next/cache";
+import { query } from '@/lib/db';
+import SeasonSelect from './season-select';
+import DayTabs from './DayTabs.client';
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-export const fetchCache = "force-no-store";
+export const dynamic = 'force-dynamic';
 
-export default async function MatchesPage() {
-  noStore();
+type Search = { season?: string; day?: string };
 
-  // 1️⃣ Přečti hlavičky – u tebe je headers() Promise, proto await
-  const h = await headers();
-
-  // 2️⃣ Zkus poskládat URL co nejspolehlivěji
-  let fullUrl =
-    h.get("referer") ||
-    (() => {
-      const proto = h.get("x-forwarded-proto") ?? "https";
-      const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-      const path = h.get("x-invoke-path") ?? "/matches";
-      const queryStr = h.get("x-forwarded-query"); // bez '?'
-      return `${proto}://${host}${path}${queryStr ? `?${queryStr}` : ""}`;
-    })();
-
-  if (!fullUrl) fullUrl = "https://example.com/matches";
-
-  const url = new URL(fullUrl);
-  const seasonParam = url.searchParams.get("season");
-  const dayParam = url.searchParams.get("day");
-
-  // 3️⃣ Načti seznam sezon
+export default async function MatchesPage({
+  searchParams,
+}: { searchParams?: Search }) {
+  // 1) Sezóny (default nejnovější)
   const seasons = await query<{ id: number; year: number; name: string }>(
     `select id, year, name from seasons order by year desc`
   );
   if (!seasons.length) {
     return <div className="p-6">No seasons found.</div>;
   }
+  const defaultSeasonId = seasons[0].id;
 
-  // 4️⃣ Bezpečné určení seasonId
-  const defaultSeasonId = Number.parseInt(String(seasons[0].id), 10);
-  let seasonId = Number.parseInt(seasonParam ?? "NaN", 10);
-  if (!Number.isInteger(seasonId) || seasonId <= 0) {
-    seasonId = defaultSeasonId;
-  }
+  // 2) bezpečné parsování
+  let seasonId = Number.parseInt(searchParams?.season ?? '', 10);
+  if (!Number.isFinite(seasonId)) seasonId = defaultSeasonId;
 
-  // 5️⃣ Den (1 nebo 2)
-  const day: 1 | 2 = dayParam === "2" ? 2 : 1;
+  let day = Number.parseInt(searchParams?.day ?? '', 10);
+  if (day !== 1 && day !== 2) day = 1;
 
-  // 6️⃣ Zápasy
+  // 3) zápasy pro vybraný den/sezónu
   const matches = await query<{
     id: number;
     legacy_id: string | null;
@@ -68,43 +43,47 @@ export default async function MatchesPage() {
     [seasonId, day]
   );
 
+  // DEBUG řádek nechám, ať máme jasno co se parsuje
+  const debug = `seasonId=${seasonId}, day=${day}`;
+
   return (
-    <div className="mx-auto max-w-4xl p-6 space-y-4">
-      <div className="text-xs text-gray-500">
-        DEBUG: seasonId=<b>{seasonId}</b>, day=<b>{day}</b>
-      </div>
+    <div className="mx-auto max-w-5xl p-6">
+      <div className="mb-2 text-xs text-gray-400">DEBUG: {debug}</div>
 
       <div className="flex items-center justify-between gap-4">
         <SeasonSelect seasons={seasons} value={seasonId} day={day} />
         <DayTabs seasonId={seasonId} day={day} />
       </div>
 
-      <div className="mt-2 overflow-x-auto rounded-lg border">
+      {/* ČITELNOST: vynucené bílé pozadí a tmavý text uvnitř boxu */}
+      <div className="mt-6 overflow-x-auto rounded-xl bg-white text-gray-900 shadow ring-1 ring-black/10">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                MATCH
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                Match
               </th>
-              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                COURSE
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                Course
               </th>
-              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                STATUS
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                Status
               </th>
-              <th className="px-4 py-2" />
+              <th className="px-4 py-3" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 bg-white">
+          <tbody className="divide-y divide-gray-100">
             {matches.map((m) => (
-              <tr key={m.id}>
-                <td className="px-4 py-3">#{m.id}</td>
-                <td className="px-4 py-3">{m.course_name ?? "TBD"}</td>
-                <td className="px-4 py-3">{m.status}</td>
+              <tr key={m.id} className="bg-white hover:bg-gray-50">
+                <td className="px-4 py-3 font-medium text-gray-900">#{m.id}</td>
+                <td className="px-4 py-3 text-gray-900">
+                  {m.course_name ?? 'TBD'}
+                </td>
+                <td className="px-4 py-3 text-gray-900">{m.status}</td>
                 <td className="px-4 py-3 text-right">
                   <a
                     href={`/match/${m.id}`}
-                    className="rounded bg-black px-3 py-1 text-sm text-white"
+                    className="rounded bg-black px-3 py-1 text-sm text-white hover:bg-gray-800"
                   >
                     Open
                   </a>
@@ -113,7 +92,7 @@ export default async function MatchesPage() {
             ))}
             {!matches.length && (
               <tr>
-                <td className="px-4 py-6 text-sm text-gray-500" colSpan={4}>
+                <td className="px-4 py-6 text-sm text-gray-600" colSpan={4}>
                   Žádné zápasy pro vybraný den/sezonu.
                 </td>
               </tr>

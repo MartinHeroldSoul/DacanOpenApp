@@ -12,14 +12,31 @@ export const fetchCache = "force-no-store";
 export default async function MatchesPage() {
   noStore();
 
-  // 1️⃣ Načti query string ručně z URL (spolehlivé i na Vercelu)
-  const headersList = headers();
-  const fullUrl = headersList.get("x-url") || headersList.get("referer") || "";
-  const url = new URL(fullUrl || "https://example.com");
+  // 1) Přečti hlavičky – u tebe je headers() Promise, proto await
+  const h = await headers();
+
+  // 2) Zkus poskládat URL co nejspolehlivěji
+  //    a) primárně z Referer (funguje při navigaci v appce)
+  //    b) fallback z X-Forwarded-* + Host + případných custom headerů
+  let fullUrl =
+    h.get("referer") ||
+    (() => {
+      const proto = h.get("x-forwarded-proto") ?? "https";
+      const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+      // některé prostředí posílají path/query v těchto headerech; když nejsou, necháme prázdné
+      const path = h.get("x-invoke-path") ?? "/matches";
+      const queryStr = h.get("x-forwarded-query"); // bez '?'
+      return `${proto}://${host}${path}${queryStr ? `?${queryStr}` : ""}`;
+    })();
+
+  // jako úplně poslední záchrana
+  if (!fullUrl) fullUrl = "https://example.com/matches";
+
+  const url = new URL(fullUrl);
   const seasonParam = url.searchParams.get("season");
   const dayParam = url.searchParams.get("day");
 
-  // 2️⃣ Sezóny
+  // 3) Načti seznam sezon
   const seasons = await query<{ id: number; year: number; name: string }>(
     `select id, year, name from seasons order by year desc`
   );
@@ -34,7 +51,7 @@ export default async function MatchesPage() {
 
   const day: 1 | 2 = dayParam === "2" ? 2 : 1;
 
-  // 3️⃣ Zápasy
+  // 4) Zápasy pro daný den
   const matches = await query<{
     id: number;
     legacy_id: string | null;

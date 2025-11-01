@@ -3,40 +3,58 @@ import Link from "next/link";
 import SeasonSelect from "./season-select";
 import { query } from "@/lib/db";
 
+// DŮLEŽITÉ: ať je stránka vždy dynamická a nerevaliduje se ze statiky
 export const dynamic = "force-dynamic";
+export const dynamicParams = true;
+export const revalidate = 0;
 
 type Search = { season?: string; day?: string };
 
-// Pomocná komponenta pro přepínač dnů (server-safe přes <Link>)
+// Pomocná komponenta pro přepínač dnů (jen odkazy, žádný JS stav)
 function DayTabs({ seasonId, day }: { seasonId: number; day: number }) {
   const base = `/matches?season=${seasonId}`;
   return (
     <div className="inline-flex overflow-hidden rounded-md border">
-      {[1, 2].map((d) => (
-        <Link
-          key={d}
-          href={`${base}&day=${d}`}
-          prefetch={false}
-          className={[
-            "px-4 py-2 text-sm",
-            d === day
-              ? "bg-green-600 text-white"
-              : "bg-white hover:bg-gray-50 text-gray-700",
-            d === 1 ? "border-r" : ""
-          ].join(" ")}
-          aria-current={d === day ? "page" : undefined}
-        >
-          Day {d}
-        </Link>
-      ))}
+      {[1, 2].map((d) => {
+        const active = d === day;
+        return (
+          <Link
+            key={d}
+            href={`${base}&day=${d}`}
+            prefetch={false}
+            className={[
+              "px-4 py-2 text-sm",
+              active
+                ? "bg-green-600 text-white"
+                : "bg-white hover:bg-gray-50 text-gray-700",
+              d === 1 ? "border-r" : "",
+            ].join(" ")}
+            aria-current={active ? "page" : undefined}
+          >
+            Day {d}
+          </Link>
+        );
+      })}
     </div>
   );
 }
 
+// Helpery pro bezpečný parse
+function toInt(v: string | undefined, fallback: number) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+function clampDay(v: string | undefined, fallback: 1 | 2): 1 | 2 {
+  const n = Number(v);
+  return n === 2 ? 2 : 1;
+}
+
 export default async function MatchesPage({
   searchParams,
-}: { searchParams?: Search }) {
-  // 1) Sezóny (pro default)
+}: {
+  searchParams?: Search;
+}) {
+  // 1) sezóny
   const seasons = await query<{ id: number; year: number; name: string }>(
     `select id, year, name from seasons order by year desc`
   );
@@ -45,14 +63,11 @@ export default async function MatchesPage({
   }
   const defaultSeasonId = seasons[0].id;
 
-  // 2) bezpečné parsování parametrů
-  let seasonId = Number.parseInt(searchParams?.season ?? "", 10);
-  if (!Number.isFinite(seasonId)) seasonId = defaultSeasonId;
+  // 2) načti seasonId + day ze searchParams
+  const seasonId = toInt(searchParams?.season, defaultSeasonId);
+  const day = clampDay(searchParams?.day, 1);
 
-  let day = Number.parseInt(searchParams?.day ?? "", 10);
-  if (day !== 1 && day !== 2) day = 1;
-
-  // 3) Zápasy pro (seasonId, day)
+  // 3) zápasy
   const matches = await query<{
     id: number;
     legacy_id: string | null;
@@ -81,9 +96,15 @@ export default async function MatchesPage({
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Match</th>
-              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Course</th>
-              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
+              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                Match
+              </th>
+              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                Course
+              </th>
+              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                Status
+              </th>
               <th className="px-4 py-2" />
             </tr>
           </thead>

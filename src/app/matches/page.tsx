@@ -1,4 +1,5 @@
 // src/app/matches/page.tsx
+import Link from "next/link";
 import SeasonSelect from "./season-select";
 import { query } from "@/lib/db";
 
@@ -6,28 +7,52 @@ export const dynamic = "force-dynamic";
 
 type Search = { season?: string; day?: string };
 
+// Pomocná komponenta pro přepínač dnů (server-safe přes <Link>)
+function DayTabs({ seasonId, day }: { seasonId: number; day: number }) {
+  const base = `/matches?season=${seasonId}`;
+  return (
+    <div className="inline-flex overflow-hidden rounded-md border">
+      {[1, 2].map((d) => (
+        <Link
+          key={d}
+          href={`${base}&day=${d}`}
+          prefetch={false}
+          className={[
+            "px-4 py-2 text-sm",
+            d === day
+              ? "bg-green-600 text-white"
+              : "bg-white hover:bg-gray-50 text-gray-700",
+            d === 1 ? "border-r" : ""
+          ].join(" ")}
+          aria-current={d === day ? "page" : undefined}
+        >
+          Day {d}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export default async function MatchesPage({
   searchParams,
 }: { searchParams?: Search }) {
-  // 1) načti seznam sezon (ať víme default)
+  // 1) Sezóny (pro default)
   const seasons = await query<{ id: number; year: number; name: string }>(
     `select id, year, name from seasons order by year desc`
   );
   if (!seasons.length) {
     return <div className="p-6">No seasons found.</div>;
   }
-
   const defaultSeasonId = seasons[0].id;
 
-  // 2) bezpečně přečti seasonId
+  // 2) bezpečné parsování parametrů
   let seasonId = Number.parseInt(searchParams?.season ?? "", 10);
   if (!Number.isFinite(seasonId)) seasonId = defaultSeasonId;
 
-  // 3) bezpečně přečti day (jen 1 nebo 2)
   let day = Number.parseInt(searchParams?.day ?? "", 10);
   if (day !== 1 && day !== 2) day = 1;
 
-  // 4) načti zápasy pro (seasonId, day)
+  // 3) Zápasy pro (seasonId, day)
   const matches = await query<{
     id: number;
     legacy_id: string | null;
@@ -49,20 +74,7 @@ export default async function MatchesPage({
     <div className="mx-auto max-w-4xl p-6">
       <div className="flex items-center justify-between gap-4">
         <SeasonSelect seasons={seasons} value={seasonId} day={day} />
-        <div className="flex gap-2">
-          <a
-            href={`/matches?season=${seasonId}&day=1`}
-            className={`rounded px-3 py-1 text-sm ${day === 1 ? "bg-black text-white" : "bg-gray-100"}`}
-          >
-            Day 1
-          </a>
-          <a
-            href={`/matches?season=${seasonId}&day=2`}
-            className={`rounded px-3 py-1 text-sm ${day === 2 ? "bg-black text-white" : "bg-gray-100"}`}
-          >
-            Day 2
-          </a>
-        </div>
+        <DayTabs seasonId={seasonId} day={day} />
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-lg border">
